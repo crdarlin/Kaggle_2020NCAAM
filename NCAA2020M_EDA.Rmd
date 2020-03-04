@@ -1,0 +1,120 @@
+---
+title: "NCAA2020M_EDA"
+author: "Cameron Darling"
+output: html_document
+---
+
+# Libraries
+
+```{r message = FALSE, warning = FALSE}
+rm(list = ls())
+library(dplyr)
+```
+
+# Import Data
+
+```{r}
+events15 <- read.csv('Data/MEvents2015.csv')
+events16 <- read.csv('Data/MEvents2016.csv')
+events17 <- read.csv('Data/MEvents2017.csv')
+events18 <- read.csv('Data/MEvents2018.csv')
+events19 <- read.csv('Data/MEvents2019.csv')
+```
+
+```{r}
+glimpse(events19)
+```
+
+```{r}
+summary(events19)
+```
+
+# View All Possible Event Types in dataset
+
+```{r}
+unique(events15$EventType)
+unique(events16$EventType)
+unique(events17$EventType)
+unique(events18$EventType)
+unique(events19$EventType)
+```
+
+# View All Possible combination of EventType + EventSubType
+
+```{r}
+unique((events19 %>% mutate(check = paste(EventType,EventSubType)))$check)
+```
+
+# Create Metrics for Events Data using standard formula
+
+```{r}
+Standard_Metrics <- function(df) {
+  df %>% 
+    mutate(FGM_2P = ifelse(EventType == 'made2',1,0),
+         FGA_2P = ifelse(EventType == 'made2',1,
+                         ifelse(EventType == 'miss2',1,0)),
+         FGM_3P = ifelse(EventType == 'made3',1,0),
+         FGA_3P = ifelse(EventType == 'made3',1,
+                         ifelse(EventType == 'miss3',1,0)),
+         FTM = ifelse(EventType == 'made1',1,0),
+         FTA = ifelse(EventType == 'made1',1,
+                      ifelse(EventType == 'miss1',1,0)),
+         AST = ifelse(EventType == 'assist',1,0),
+         TO = ifelse(EventType == 'turnover',1,0),
+         ORB = ifelse(EventType == 'reb', 
+                      ifelse(EventSubType == 'off',1,0),0),
+         DRB = ifelse(EventType == 'reb',
+                      ifelse(EventSubType == 'def',1,0),0),
+         STL = ifelse(EventType == 'steal',1,0),
+         BLK = ifelse(EventType == 'block',1,0),
+         FOUL = ifelse(EventType == 'foul',1,0),
+         PTS = 2 * FGM_2P + 3 * FGM_3P + FTM,
+         WPts = ifelse(WTeamID == EventTeamID, PTS, 0),
+         LPts = ifelse(LTeamID == EventTeamID, PTS, 0))
+}
+```
+
+# Metric for determining game part
+
+```{r}
+GamePart <- function(df) {
+  df %>% 
+    mutate(Game_Part = ifelse(ElapsedSeconds <= 60 * 20, '1H',
+                   ifelse(ElapsedSeconds <= 60 * 40, '2H',
+                          'OT')))
+}
+```
+
+
+# Formula for Advanced Metrics based on Game/Half Level Stats
+
+```{r}
+Advanced_Metrics <- function(df) {
+  df %>% mutate(POSS = .96 * ((FGA_2P + FGA_3P) + TO + (.475 * FTA) - ORB),
+                ORtg = 100 * (PTS / POSS),
+                DRtg = 100 * 1)
+}
+```
+
+
+# Identify the Games that do not match between event points and total points
+
+```{r}
+event_check <- Standard_Metrics(events19) %>% 
+  group_by(WTeamID, LTeamID, DayNum) %>% 
+  summarise(WFinalScore = max(WFinalScore),
+            LFinalScore = max(LFinalScore),
+            WPts = sum(WPts),
+            LPts = sum(LPts)) %>% 
+  ungroup() %>% 
+  mutate(check = ifelse(WFinalScore == WPts & LFinalScore == LPts,"Yes","No")) %>% 
+  filter(check != 'Yes')
+  
+```
+
+# Adding in Event Statistics
+
+```{r}
+events19_2 <- Standard_Metrics(events19) %>% GamePart()
+```
+
