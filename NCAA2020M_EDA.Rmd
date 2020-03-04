@@ -120,5 +120,6 @@ events16_2 <- Standard_Metrics(events16) %>% GamePart()
 events17_2 <- Standard_Metrics(events17) %>% GamePart()
 events18_2 <- Standard_Metrics(events18) %>% GamePart()
 events19_2 <- Standard_Metrics(events19) %>% GamePart()
+# Fix
 ```
 
