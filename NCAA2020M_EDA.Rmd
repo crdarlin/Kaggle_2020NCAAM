@@ -9,16 +9,17 @@ output: html_document
 ```{r message = FALSE, warning = FALSE}
 rm(list = ls())
 library(dplyr)
+library(readr)
 ```
 
 # Import Data
 
-```{r}
-events15 <- read.csv('Data/MEvents2015.csv')
-events16 <- read.csv('Data/MEvents2016.csv')
-events17 <- read.csv('Data/MEvents2017.csv')
-events18 <- read.csv('Data/MEvents2018.csv')
-events19 <- read.csv('Data/MEvents2019.csv')
+```{r message = FALSE, warning = FALSE}
+events15 <- read_csv('Data/MEvents2015.csv')
+events16 <- read_csv('Data/MEvents2016.csv')
+events17 <- read_csv('Data/MEvents2017.csv')
+events18 <- read_csv('Data/MEvents2018.csv')
+events19 <- read_csv('Data/MEvents2019.csv')
 ```
 
 ```{r}
@@ -50,27 +51,72 @@ unique((events19 %>% mutate(check = paste(EventType,EventSubType)))$check)
 ```{r}
 Standard_Metrics <- function(df) {
   df %>% 
-    mutate(FGM_2P = ifelse(EventType == 'made2',1,0),
-         FGA_2P = ifelse(EventType == 'made2',1,
-                         ifelse(EventType == 'miss2',1,0)),
-         FGM_3P = ifelse(EventType == 'made3',1,0),
-         FGA_3P = ifelse(EventType == 'made3',1,
-                         ifelse(EventType == 'miss3',1,0)),
-         FTM = ifelse(EventType == 'made1',1,0),
-         FTA = ifelse(EventType == 'made1',1,
-                      ifelse(EventType == 'miss1',1,0)),
-         AST = ifelse(EventType == 'assist',1,0),
-         TO = ifelse(EventType == 'turnover',1,0),
-         ORB = ifelse(EventType == 'reb', 
-                      ifelse(EventSubType == 'off',1,0),0),
-         DRB = ifelse(EventType == 'reb',
-                      ifelse(EventSubType == 'def',1,0),0),
-         STL = ifelse(EventType == 'steal',1,0),
-         BLK = ifelse(EventType == 'block',1,0),
-         FOUL = ifelse(EventType == 'foul',1,0),
-         PTS = 2 * FGM_2P + 3 * FGM_3P + FTM,
-         WPts = ifelse(WTeamID == EventTeamID, PTS, 0),
-         LPts = ifelse(LTeamID == EventTeamID, PTS, 0))
+    mutate(TeamID = WTeamID,
+           Opp_TeamID = LTeamID,
+           FGM_2P = ifelse(WTeamID == EventTeamID,
+                           ifelse(EventType == 'made2',1,0),0),
+           FGA_2P = ifelse(WTeamID == EventTeamID,
+                         ifelse(EventType == 'made2',1,
+                         ifelse(EventType == 'miss2',1,0)),0),
+           FGM_3P = ifelse(WTeamID == EventTeamID,
+                         ifelse(EventType == 'made3',1,0),0),
+           FGA_3P = ifelse(WTeamID == EventTeamID,
+                         ifelse(EventType == 'made3',1,
+                         ifelse(EventType == 'miss3',1,0)),0),
+           FTM = ifelse(WTeamID == EventTeamID,
+                      ifelse(EventType == 'made1',1,0),0),
+           FTA = ifelse(WTeamID == EventTeamID,
+                      ifelse(EventType == 'made1',1,
+                      ifelse(EventType == 'miss1',1,0)),0),
+           AST = ifelse(WTeamID == EventTeamID,
+                      ifelse(EventType == 'assist',1,0),0),
+           TO = ifelse(WTeamID == EventTeamID,
+                     ifelse(EventType == 'turnover',1,0),0),
+           ORB = ifelse(WTeamID == EventTeamID,
+                      ifelse(EventType == 'reb', 
+                      ifelse(EventSubType == 'off',1,0),0),0),
+           DRB = ifelse(WTeamID == EventTeamID,
+                      ifelse(EventType == 'reb',
+                      ifelse(EventSubType == 'def',1,0),0),0),
+           STL = ifelse(WTeamID == EventTeamID,
+                      ifelse(EventType == 'steal',1,0),0),
+           BLK = ifelse(WTeamID == EventTeamID,
+                      ifelse(EventType == 'block',1,0),0),
+           FOUL = ifelse(WTeamID == EventTeamID,
+                       ifelse(EventType == 'foul',1,0),0),
+           Pts = ifelse(WTeamID == EventTeamID, 2 * FGM_2P + 3 * FGM_3P + FTM, 0),
+           Opp_FGM_2P = ifelse(LTeamID == EventTeamID,
+                           ifelse(EventType == 'made2',1,0),0),
+           Opp_FGA_2P = ifelse(LTeamID == EventTeamID,
+                         ifelse(EventType == 'made2',1,
+                         ifelse(EventType == 'miss2',1,0)),0),
+           Opp_FGM_3P = ifelse(LTeamID == EventTeamID,
+                         ifelse(EventType == 'made3',1,0),0),
+           Opp_FGA_3P = ifelse(LTeamID == EventTeamID,
+                         ifelse(EventType == 'made3',1,
+                         ifelse(EventType == 'miss3',1,0)),0),
+           Opp_FTM = ifelse(LTeamID == EventTeamID,
+                      ifelse(EventType == 'made1',1,0),0),
+           Opp_FTA = ifelse(LTeamID == EventTeamID,
+                      ifelse(EventType == 'made1',1,
+                      ifelse(EventType == 'miss1',1,0)),0),
+           Opp_AST = ifelse(LTeamID == EventTeamID,
+                      ifelse(EventType == 'assist',1,0),0),
+           Opp_TO = ifelse(LTeamID == EventTeamID,
+                     ifelse(EventType == 'turnover',1,0),0),
+           Opp_ORB = ifelse(LTeamID == EventTeamID,
+                      ifelse(EventType == 'reb', 
+                      ifelse(EventSubType == 'off',1,0),0),0),
+           Opp_DRB = ifelse(LTeamID == EventTeamID,
+                      ifelse(EventType == 'reb',
+                      ifelse(EventSubType == 'def',1,0),0),0),
+           Opp_STL = ifelse(LTeamID == EventTeamID,
+                      ifelse(EventType == 'steal',1,0),0),
+           Opp_BLK = ifelse(LTeamID == EventTeamID,
+                      ifelse(EventType == 'block',1,0),0),
+           Opp_FOUL = ifelse(LTeamID == EventTeamID,
+                       ifelse(EventType == 'foul',1,0),0),
+           Opp_Pts = ifelse(LTeamID == EventTeamID, 2 * Opp_FGM_2P + 3 * Opp_FGM_3P + Opp_FTM, 0))
 }
 ```
 
@@ -85,41 +131,189 @@ GamePart <- function(df) {
 }
 ```
 
+# Identify the Games that do not match between event points and total points
 
-# Formula for Advanced Metrics based on Game/Half Level Stats
+
+# Break down data into 1H/2H/Total Per Team
 
 ```{r}
-Advanced_Metrics <- function(df) {
-  df %>% mutate(POSS = .96 * ((FGA_2P + FGA_3P) + TO + (.475 * FTA) - ORB),
-                ORtg = 100 * (PTS / POSS),
-                DRtg = 100 * 1)
+BreakDown_GamePart <- function(df) {
+  first_half <- Standard_Metrics(df) %>% 
+           GamePart() %>% 
+           filter(Game_Part == '1H') %>%
+           group_by(TeamID,Opp_TeamID,DayNum) %>% 
+           summarise(FinalScore = max(WFinalScore),
+                     Opp_FinalScore = max(LFinalScore),
+                     FGM_2P = sum(FGM_2P),
+                     FGA_2P = sum(FGA_2P),
+                     FGM_3P = sum(FGM_3P),
+                     FGA_3P = sum(FGA_3P),
+                     FTM = sum(FTM),
+                     FTA = sum(FTA),
+                     AST = sum(AST),
+                     TO = sum(TO),
+                     ORB = sum(ORB),
+                     DRB = sum(DRB),
+                     STL = sum(STL),
+                     BLK = sum(BLK),
+                     FOUL = sum(FOUL),
+                     Pts = sum(Pts),
+                     Opp_FGM_2P = sum(Opp_FGM_2P),
+                     Opp_FGA_2P = sum(Opp_FGA_2P),
+                     Opp_FGM_3P = sum(Opp_FGM_3P),
+                     Opp_FGA_3P = sum(Opp_FGA_3P),
+                     Opp_FTM = sum(Opp_FTM),
+                     Opp_FTA = sum(Opp_FTA),
+                     Opp_AST = sum(Opp_AST),
+                     Opp_TO = sum(Opp_TO),
+                     Opp_ORB = sum(Opp_ORB),
+                     Opp_DRB = sum(Opp_DRB),
+                     Opp_STL = sum(Opp_STL),
+                     Opp_BLK = sum(Opp_BLK),
+                     Opp_FOUL = sum(Opp_FOUL),
+                     Opp_Pts = sum(Opp_Pts)) %>% 
+           ungroup() %>% 
+           filter(Pts != 0) %>% 
+           mutate(POSS = .96 * ((FGA_2P + FGA_3P) + TO + (.475 * FTA) - ORB),
+                  Opp_POSS = .96 * ((Opp_FGA_2P + Opp_FGA_3P) + TO + (.475 * Opp_FTA) - Opp_ORB))
+  first_half_flipped <- first_half
+  flipped_names <- c('Opp_TeamID', 'TeamID', 'DayNum','Opp_FinalScore', 'FinalScore','Opp_FGM_2P','Opp_FGA_2P','Opp_FGM_3P','Opp_FGA_3P',
+                     'Opp_FTM','Opp_FTA','Opp_AST','Opp_TO','Opp_ORB','Opp_DRB','Opp_STL','Opp_BLK','Opp_FOUL','Opp_Pts',
+                     'FGM_2P','FGA_2P','FGM_3P','FGA_3P','FTM','FTA','AST','TO','ORB','DRB','STL','BLK','FOUL','Pts','Opp_POSS','POSS')
+  names(first_half_flipped) <- flipped_names
+  first_half_flipped <- first_half_flipped %>% 
+    select(TeamID,Opp_TeamID,DayNum,FinalScore,Opp_FinalScore,FGM_2P,FGA_2P,FGM_3P,FGA_3P,FTM,FTA,AST,TO,ORB,DRB,STL,BLK,FOUL,Pts,Opp_FGM_2P,
+           Opp_FGA_2P,Opp_FGM_3P,Opp_FGA_3P,Opp_FTM,Opp_FTA,Opp_AST,Opp_TO,Opp_ORB,Opp_DRB,Opp_STL,Opp_BLK,Opp_FOUL,Opp_Pts,POSS,Opp_POSS)
+  first_half_combined <- rbind(first_half,first_half_flipped) %>% 
+           arrange(TeamID,DayNum) %>% 
+           group_by(TeamID) %>% 
+           mutate(Game = seq(n()))
+  second_half <- Standard_Metrics(df) %>% 
+           GamePart() %>% 
+           filter(Game_Part == '2H') %>% 
+           group_by(TeamID,Opp_TeamID,DayNum) %>% 
+           summarise(FinalScore = max(WFinalScore),
+                     Opp_FinalScore = max(LFinalScore),
+                     FGM_2P = sum(FGM_2P),
+                     FGA_2P = sum(FGA_2P),
+                     FGM_3P = sum(FGM_3P),
+                     FGA_3P = sum(FGA_3P),
+                     FTM = sum(FTM),
+                     FTA = sum(FTA),
+                     AST = sum(AST),
+                     TO = sum(TO),
+                     ORB = sum(ORB),
+                     DRB = sum(DRB),
+                     STL = sum(STL),
+                     BLK = sum(BLK),
+                     FOUL = sum(FOUL),
+                     Pts = sum(Pts),
+                     Opp_FGM_2P = sum(Opp_FGM_2P),
+                     Opp_FGA_2P = sum(Opp_FGA_2P),
+                     Opp_FGM_3P = sum(Opp_FGM_3P),
+                     Opp_FGA_3P = sum(Opp_FGA_3P),
+                     Opp_FTM = sum(Opp_FTM),
+                     Opp_FTA = sum(Opp_FTA),
+                     Opp_AST = sum(Opp_AST),
+                     Opp_TO = sum(Opp_TO),
+                     Opp_ORB = sum(Opp_ORB),
+                     Opp_DRB = sum(Opp_DRB),
+                     Opp_STL = sum(Opp_STL),
+                     Opp_BLK = sum(Opp_BLK),
+                     Opp_FOUL = sum(Opp_FOUL),
+                     Opp_Pts = sum(Opp_Pts)) %>%  
+           ungroup() %>% 
+           filter(Pts != 0) %>% 
+           mutate(POSS = .96 * ((FGA_2P + FGA_3P) + TO + (.475 * FTA) - ORB),
+                  Opp_POSS = .96 * ((Opp_FGA_2P + Opp_FGA_3P) + TO + (.475 * Opp_FTA) - Opp_ORB))
+  second_half_flipped <- second_half
+  names(second_half_flipped) <- flipped_names
+  second_half_flipped <- second_half_flipped %>% 
+    select(TeamID,Opp_TeamID,DayNum,FinalScore,Opp_FinalScore,FGM_2P,FGA_2P,FGM_3P,FGA_3P,FTM,FTA,AST,TO,ORB,DRB,STL,BLK,FOUL,Pts,Opp_FGM_2P,
+           Opp_FGA_2P,Opp_FGM_3P,Opp_FGA_3P,Opp_FTM,Opp_FTA,Opp_AST,Opp_TO,Opp_ORB,Opp_DRB,Opp_STL,Opp_BLK,Opp_FOUL,Opp_Pts,POSS,Opp_POSS)
+  second_half_combined <- rbind(second_half,second_half_flipped) %>% 
+           arrange(TeamID,DayNum) %>% 
+           group_by(TeamID) %>% 
+           mutate(Game = seq(n()))
+  full_game <- Standard_Metrics(df) %>% 
+           GamePart() %>% 
+           group_by(TeamID,Opp_TeamID,DayNum) %>% 
+           summarise(FinalScore = max(WFinalScore),
+                     Opp_FinalScore = max(LFinalScore),
+                     FGM_2P = sum(FGM_2P),
+                     FGA_2P = sum(FGA_2P),
+                     FGM_3P = sum(FGM_3P),
+                     FGA_3P = sum(FGA_3P),
+                     FTM = sum(FTM),
+                     FTA = sum(FTA),
+                     AST = sum(AST),
+                     TO = sum(TO),
+                     ORB = sum(ORB),
+                     DRB = sum(DRB),
+                     STL = sum(STL),
+                     BLK = sum(BLK),
+                     FOUL = sum(FOUL),
+                     Pts = sum(Pts),
+                     Opp_FGM_2P = sum(Opp_FGM_2P),
+                     Opp_FGA_2P = sum(Opp_FGA_2P),
+                     Opp_FGM_3P = sum(Opp_FGM_3P),
+                     Opp_FGA_3P = sum(Opp_FGA_3P),
+                     Opp_FTM = sum(Opp_FTM),
+                     Opp_FTA = sum(Opp_FTA),
+                     Opp_AST = sum(Opp_AST),
+                     Opp_TO = sum(Opp_TO),
+                     Opp_ORB = sum(Opp_ORB),
+                     Opp_DRB = sum(Opp_DRB),
+                     Opp_STL = sum(Opp_STL),
+                     Opp_BLK = sum(Opp_BLK),
+                     Opp_FOUL = sum(Opp_FOUL),
+                     Opp_Pts = sum(Opp_Pts)) %>%  
+           ungroup() %>% 
+           filter(Pts != 0) %>% 
+           mutate(POSS = .96 * ((FGA_2P + FGA_3P) + TO + (.475 * FTA) - ORB),
+                  Opp_POSS = .96 * ((Opp_FGA_2P + Opp_FGA_3P) + TO + (.475 * Opp_FTA) - Opp_ORB))
+  full_game_flipped <- full_game
+  names(full_game_flipped) <- flipped_names
+  full_game_flipped <- full_game_flipped %>% 
+    select(TeamID,Opp_TeamID,DayNum,FinalScore,Opp_FinalScore,FGM_2P,FGA_2P,FGM_3P,FGA_3P,FTM,FTA,AST,TO,ORB,DRB,STL,BLK,FOUL,Pts,Opp_FGM_2P,
+           Opp_FGA_2P,Opp_FGM_3P,Opp_FGA_3P,Opp_FTM,Opp_FTA,Opp_AST,Opp_TO,Opp_ORB,Opp_DRB,Opp_STL,Opp_BLK,Opp_FOUL,Opp_Pts,POSS,Opp_POSS)
+  full_game_combined <- rbind(full_game,full_game_flipped) %>% 
+           arrange(TeamID,DayNum) %>% 
+           group_by(TeamID) %>% 
+           mutate(Game = seq(n()))
+  assign(paste(deparse(substitute(df)),'_1H', sep = ''),
+         first_half_combined,
+         envir = .GlobalEnv)
+  assign(paste(deparse(substitute(df)),'_2H', sep = ''),
+         second_half_combined, 
+         envir = .GlobalEnv)
+  assign(paste(deparse(substitute(df)),'_TOT', sep = ''),
+         full_game_combined, 
+         envir = .GlobalEnv)
 }
 ```
 
-
-# Identify the Games that do not match between event points and total points
-
 ```{r}
-event_check <- Standard_Metrics(events19) %>% 
-  group_by(WTeamID, LTeamID, DayNum) %>% 
-  summarise(WFinalScore = max(WFinalScore),
-            LFinalScore = max(LFinalScore),
-            WPts = sum(WPts),
-            LPts = sum(LPts)) %>% 
-  ungroup() %>% 
-  mutate(check = ifelse(WFinalScore == WPts & LFinalScore == LPts,"Yes","No")) %>% 
-  filter(check != 'Yes')
-  
+BreakDown_GamePart(events15)
+BreakDown_GamePart(events16)
+BreakDown_GamePart(events17)
+BreakDown_GamePart(events18)
+BreakDown_GamePart(events19)
 ```
 
-# Adding in Event Statistics
+
+# Check Games that Scores do not line up
 
 ```{r}
-events15_2 <- Standard_Metrics(events15) %>% GamePart()
-events16_2 <- Standard_Metrics(events16) %>% GamePart()
-events17_2 <- Standard_Metrics(events17) %>% GamePart()
-events18_2 <- Standard_Metrics(events18) %>% GamePart()
-events19_2 <- Standard_Metrics(events19) %>% GamePart()
-# Fix
+error_check <- function(df) {
+  df %>% filter(FinalScore != Pts | Opp_FinalScore != Opp_Pts) %>% select(TeamID, Opp_TeamID, DayNum, FinalScore, Opp_FinalScore, Pts, Opp_Pts)
+}
 ```
 
+```{r}
+error_check(events15_TOT)
+```
+
+```{r}
+error_game <- events15 %>% filter(WTeamID == 1164 & LTeamID == 1288 & DayNum == 117) %>% Standard_Metrics()
+```
