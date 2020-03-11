@@ -10,6 +10,7 @@ output: html_document
 rm(list = ls())
 library(dplyr)
 library(readr)
+library(data.table)
 ```
 
 # Import Data
@@ -20,7 +21,13 @@ events16 <- read_csv('Data/MEvents2016.csv')
 events17 <- read_csv('Data/MEvents2017.csv')
 events18 <- read_csv('Data/MEvents2018.csv')
 events19 <- read_csv('Data/MEvents2019.csv')
+teams <- read_csv('Data/MTeams.csv')
 ```
+
+```{r}
+DayNum_Regular <- 133
+```
+
 
 ```{r}
 glimpse(events19)
@@ -175,19 +182,23 @@ BreakDown_GamePart <- function(df) {
            ungroup() %>% 
            filter(Pts != 0) %>% 
            mutate(POSS = .96 * ((FGA_2P + FGA_3P) + TO + (.475 * FTA) - ORB),
-                  Opp_POSS = .96 * ((Opp_FGA_2P + Opp_FGA_3P) + TO + (.475 * Opp_FTA) - Opp_ORB))
+                  Opp_POSS = .96 * ((Opp_FGA_2P + Opp_FGA_3P) + TO + (.475 * Opp_FTA) - Opp_ORB)) %>% 
+           mutate(Win = ifelse(FinalScore > Opp_FinalScore,1,0),
+                  Loss = ifelse(FinalScore < Opp_FinalScore,1,0),
+                  Tie = ifelse(FinalScore == Opp_FinalScore,1,0))
   first_half_flipped <- first_half
   flipped_names <- c('Opp_TeamID', 'TeamID', 'DayNum','Opp_FinalScore', 'FinalScore','Opp_FGM_2P','Opp_FGA_2P','Opp_FGM_3P','Opp_FGA_3P',
                      'Opp_FTM','Opp_FTA','Opp_AST','Opp_TO','Opp_ORB','Opp_DRB','Opp_STL','Opp_BLK','Opp_FOUL','Opp_Pts',
-                     'FGM_2P','FGA_2P','FGM_3P','FGA_3P','FTM','FTA','AST','TO','ORB','DRB','STL','BLK','FOUL','Pts','Opp_POSS','POSS')
+                     'FGM_2P','FGA_2P','FGM_3P','FGA_3P','FTM','FTA','AST','TO','ORB','DRB','STL','BLK','FOUL','Pts','Opp_POSS','POSS','Loss','Win','Tie')
   names(first_half_flipped) <- flipped_names
   first_half_flipped <- first_half_flipped %>% 
-    select(TeamID,Opp_TeamID,DayNum,FinalScore,Opp_FinalScore,FGM_2P,FGA_2P,FGM_3P,FGA_3P,FTM,FTA,AST,TO,ORB,DRB,STL,BLK,FOUL,Pts,Opp_FGM_2P,
+    select(TeamID,Opp_TeamID,DayNum,Win,Loss,Tie,FinalScore,Opp_FinalScore,FGM_2P,FGA_2P,FGM_3P,FGA_3P,FTM,FTA,AST,TO,ORB,DRB,STL,BLK,FOUL,Pts,Opp_FGM_2P,
            Opp_FGA_2P,Opp_FGM_3P,Opp_FGA_3P,Opp_FTM,Opp_FTA,Opp_AST,Opp_TO,Opp_ORB,Opp_DRB,Opp_STL,Opp_BLK,Opp_FOUL,Opp_Pts,POSS,Opp_POSS)
   first_half_combined <- rbind(first_half,first_half_flipped) %>% 
            arrange(TeamID,DayNum) %>% 
            group_by(TeamID) %>% 
-           mutate(Game = seq(n()))
+           mutate(Game = seq(n())) %>% 
+    ungroup()
   second_half <- Standard_Metrics(df) %>% 
            GamePart() %>% 
            filter(Game_Part == '2H') %>% 
@@ -225,16 +236,20 @@ BreakDown_GamePart <- function(df) {
            ungroup() %>% 
            filter(Pts != 0) %>% 
            mutate(POSS = .96 * ((FGA_2P + FGA_3P) + TO + (.475 * FTA) - ORB),
-                  Opp_POSS = .96 * ((Opp_FGA_2P + Opp_FGA_3P) + TO + (.475 * Opp_FTA) - Opp_ORB))
+                  Opp_POSS = .96 * ((Opp_FGA_2P + Opp_FGA_3P) + TO + (.475 * Opp_FTA) - Opp_ORB)) %>% 
+           mutate(Win = ifelse(FinalScore > Opp_FinalScore,1,0),
+                  Loss = ifelse(FinalScore < Opp_FinalScore,1,0),
+                  Tie = ifelse(FinalScore == Opp_FinalScore,1,0))
   second_half_flipped <- second_half
   names(second_half_flipped) <- flipped_names
   second_half_flipped <- second_half_flipped %>% 
-    select(TeamID,Opp_TeamID,DayNum,FinalScore,Opp_FinalScore,FGM_2P,FGA_2P,FGM_3P,FGA_3P,FTM,FTA,AST,TO,ORB,DRB,STL,BLK,FOUL,Pts,Opp_FGM_2P,
+    select(TeamID,Opp_TeamID,DayNum,Win,Loss,Tie,FinalScore,Opp_FinalScore,FGM_2P,FGA_2P,FGM_3P,FGA_3P,FTM,FTA,AST,TO,ORB,DRB,STL,BLK,FOUL,Pts,Opp_FGM_2P,
            Opp_FGA_2P,Opp_FGM_3P,Opp_FGA_3P,Opp_FTM,Opp_FTA,Opp_AST,Opp_TO,Opp_ORB,Opp_DRB,Opp_STL,Opp_BLK,Opp_FOUL,Opp_Pts,POSS,Opp_POSS)
   second_half_combined <- rbind(second_half,second_half_flipped) %>% 
            arrange(TeamID,DayNum) %>% 
            group_by(TeamID) %>% 
-           mutate(Game = seq(n()))
+           mutate(Game = seq(n())) %>% 
+    ungroup()
   full_game <- Standard_Metrics(df) %>% 
            GamePart() %>% 
            group_by(TeamID,Opp_TeamID,DayNum) %>% 
@@ -271,16 +286,20 @@ BreakDown_GamePart <- function(df) {
            ungroup() %>% 
            filter(Pts != 0) %>% 
            mutate(POSS = .96 * ((FGA_2P + FGA_3P) + TO + (.475 * FTA) - ORB),
-                  Opp_POSS = .96 * ((Opp_FGA_2P + Opp_FGA_3P) + TO + (.475 * Opp_FTA) - Opp_ORB))
+                  Opp_POSS = .96 * ((Opp_FGA_2P + Opp_FGA_3P) + TO + (.475 * Opp_FTA) - Opp_ORB)) %>% 
+           mutate(Win = ifelse(FinalScore > Opp_FinalScore,1,0),
+                  Loss = ifelse(FinalScore < Opp_FinalScore,1,0),
+                  Tie = ifelse(FinalScore == Opp_FinalScore,1,0))
   full_game_flipped <- full_game
   names(full_game_flipped) <- flipped_names
   full_game_flipped <- full_game_flipped %>% 
-    select(TeamID,Opp_TeamID,DayNum,FinalScore,Opp_FinalScore,FGM_2P,FGA_2P,FGM_3P,FGA_3P,FTM,FTA,AST,TO,ORB,DRB,STL,BLK,FOUL,Pts,Opp_FGM_2P,
+    select(TeamID,Opp_TeamID,DayNum,Win,Loss,Tie,FinalScore,Opp_FinalScore,FGM_2P,FGA_2P,FGM_3P,FGA_3P,FTM,FTA,AST,TO,ORB,DRB,STL,BLK,FOUL,Pts,Opp_FGM_2P,
            Opp_FGA_2P,Opp_FGM_3P,Opp_FGA_3P,Opp_FTM,Opp_FTA,Opp_AST,Opp_TO,Opp_ORB,Opp_DRB,Opp_STL,Opp_BLK,Opp_FOUL,Opp_Pts,POSS,Opp_POSS)
   full_game_combined <- rbind(full_game,full_game_flipped) %>% 
            arrange(TeamID,DayNum) %>% 
            group_by(TeamID) %>% 
-           mutate(Game = seq(n()))
+           mutate(Game = seq(n())) %>% 
+    ungroup()
   assign(paste(deparse(substitute(df)),'_1H', sep = ''),
          first_half_combined,
          envir = .GlobalEnv)
@@ -317,3 +336,127 @@ error_check(events15_TOT)
 ```{r}
 error_game <- events15 %>% filter(WTeamID == 1164 & LTeamID == 1288 & DayNum == 117) %>% Standard_Metrics()
 ```
+
+# Calculate CPI and Offense/Defensive Factor
+
+```{r}
+cpi_calculation <- function(df) {
+  step1 <- df %>% select(TeamID, Win, Loss, Tie, FinalScore, Opp_FinalScore, POSS, Opp_POSS) %>% 
+    group_by(TeamID) %>% 
+    summarise(opp_opp_wins = sum(Win, na.rm = T), opp_opp_games = n(),
+              opp_opp_ps = sum(FinalScore, na.rm = T), opp_opp_pa = sum(Opp_FinalScore, na.rm = T),
+              opp_opp_poss = sum(POSS, na.rm = T),
+              opp_opp_def_poss = sum(Opp_POSS, na.rm = T)) %>% 
+    ungroup()
+  step2 <- merge(df, step1, all.x = T, by.x = c('Opp_TeamID'), by.y = c('TeamID')) %>% 
+    select(TeamID, Opp_TeamID, Win, FinalScore, Opp_FinalScore, opp_opp_wins, opp_opp_games, opp_opp_ps, opp_opp_pa, opp_opp_poss, opp_opp_def_poss, POSS, Opp_POSS) %>% 
+    group_by(TeamID) %>% 
+    summarise(opp_wins = sum(Win), opp_games = n(), opp_opp_wins = sum(opp_opp_wins, na.rm = T), opp_opp_games = sum(opp_opp_games, na.rm = T),
+              opp_ps = sum(FinalScore, na.rm = T), opp_pa = sum(Opp_FinalScore, na.rm = T),
+              opp_opp_ps = sum(opp_opp_ps, na.rm = T), opp_opp_pa = sum(opp_opp_pa, na.rm = T),
+              opp_opp_poss = sum(opp_opp_poss, na.rm = T), opp_poss = sum(POSS, na.rm = T),
+              opp_opp_def_poss = sum(opp_opp_def_poss, na.rm = T), opp_def_poss = sum(Opp_POSS, na.rm = T)) %>% 
+    ungroup()
+  cpi <- merge(df,step2, all.x = T, by.x = c('Opp_TeamID'), by.y = c('TeamID')) %>% 
+    select(TeamID, Opp_TeamID, Win, opp_wins, opp_games, opp_opp_wins, opp_opp_games, opp_opp_ps, opp_ps, opp_opp_pa, opp_pa, opp_opp_poss, opp_poss, 
+           opp_opp_def_poss, opp_def_poss, POSS, Opp_POSS) %>% 
+    group_by(TeamID) %>% 
+    summarise(win_pct = (sum(Win, na.rm = T) / n()), opp_win_pct = (sum(opp_wins, na.rm = T) / sum(opp_games, na.rm = T)),
+              opp_opp_win_pct = (sum(opp_opp_wins, na.rm = T) / sum(opp_opp_games, na.rm = T)),
+              opp_opp_ps_avg = (sum(opp_opp_ps, na.rm = T) / sum(opp_opp_games, na.rm = T)),
+              opp_opp_pa_avg = (sum(opp_opp_pa, na.rm = T) / sum(opp_opp_games, na.rm = T)),
+              opp_ps_avg = (sum(opp_ps, na.rm = T) / sum(opp_games, na.rm = T)),
+              opp_pa_avg = (sum(opp_pa, na.rm = T) / sum(opp_games, na.rm = T)),
+              opp_opp_poss_avg = 1) %>% 
+    mutate(cpi_value = round(.25 * win_pct + .5 * opp_win_pct + .25 * opp_opp_win_pct,3), cpi_rank = rank(1 - cpi_value, ties.method = 'first'),
+           def_factor = round((opp_pa_avg - opp_opp_ps_avg) / opp_opp_ps_avg,3),
+           off_factor = round((opp_ps_avg - opp_opp_pa_avg) / opp_opp_pa_avg,3)) %>% 
+    ungroup() %>% 
+    select(TeamID, cpi_value, cpi_rank, def_factor, off_factor) %>% 
+    arrange(cpi_rank)
+  
+  opp_cpi <- cpi %>% select(Opp_TeamID = TeamID, opp_cpi_value = cpi_value, opp_cpi_rank = cpi_rank,
+                                opp_def_factor = def_factor, opp_off_factor = off_factor)
+  return(cpi)
+}
+```
+
+```{r}
+cpi_test <- cpi_calculation(events15_TOT %>% filter(DayNum <= DayNum_Regular)) %>% merge(teams) %>%
+  arrange(cpi_rank)
+cpi_test
+```
+
+```{r}
+daily_cpi <- function(df) {
+  min_daynum <- min(df %>% filter(Game == 7) %>% select(DayNum))
+  combined_daily <- na.omit(data.frame(matrix(rep(NA,1), ncol = length(names(cpi_calculation(df))))) %>% mutate(DayNum = NA))
+  for (i in min_daynum:DayNum_Regular) {
+    temp_cpi <- df %>% 
+      filter(DayNum <= i) %>% 
+      cpi_calculation() %>% 
+      mutate(DayNum = i + 1) %>% 
+      select(TeamID,DayNum,cpi_value, cpi_rank, def_factor, off_factor)
+    combined_daily <- rbind(temp_cpi,combined_daily) %>% 
+      arrange(TeamID, DayNum)
+  }
+  return(combined_daily)
+}
+
+```
+
+```{r}
+dailycpi_15 <- daily_cpi(events15_TOT)
+dailycpi_16 <- daily_cpi(events16_TOT)
+dailycpi_17 <- daily_cpi(events17_TOT)
+dailycpi_18 <- daily_cpi(events18_TOT)
+dailycpi_19 <- daily_cpi(events19_TOT)
+```
+
+
+```{r}
+min(events15_TOT %>% filter(Game == 7) %>% select(DayNum))
+```
+
+```{r}
+previous_game_average <- function(df,g) {
+  max_games <- max(df$Game)
+  temp_avg <- na.omit(data.frame(matrix(rep(NA,1), 
+                                        ncol = length(names(df %>% 
+                                                              filter(Game <= 1) %>% 
+                                                              group_by(TeamID) %>% 
+                                                              mutate(maxgame = max(Game)) %>% 
+                                                              summarise_all(mean) %>% 
+                                                              select(-Opp_TeamID,-DayNum,-Win,-Loss,-Tie)
+                                                            )))))
+  names(temp_avg) <- paste('Avg_',names(temp_avg),sep = '')
+  colnames(temp_avg)[names(temp_avg) == 'Avg_TeamID'] <- 'TeamID'
+  colnames(temp_avg)[names(temp_avg) == 'Avg_Game'] <- 'Game'
+  for (i in  1:max_games) {
+      t <- df %>%  
+        group_by(TeamID) %>% 
+        mutate(maxgame = max(Game)) %>% 
+        filter(Game <= i & Game > (i - ifelse(g == 50,max(Game),g))) %>%
+        summarise_all(funs(round(mean(.),2))) %>% 
+        mutate(Game = i) %>% 
+        filter(Game == i) %>% 
+        select(-Opp_TeamID,-DayNum,-Win,-Loss,-Tie)
+      names(t) <- paste('Avg_',names(t),sep = '')
+      colnames(t)[names(t) == 'Avg_TeamID'] <- 'TeamID'
+      colnames(t)[names(t) == 'Avg_Game'] <- 'Game'
+      temp_avg <- rbind(temp_avg,t) %>% arrange(TeamID, Game) %>% 
+        group_by(TeamID) %>% 
+        filter(Game >= ifelse(g == 50,Avg_maxgame,g) & Game <= Avg_maxgame) %>%
+        ungroup()
+  }
+  return(temp_avg %>% select(-Avg_maxgame))
+}
+```
+ 
+ 
+```{r}
+# Input is full game level details and number of previous Games. For Full Season use 50
+s <- previous_game_average(events15_TOT,7)
+glimpse(s)
+```
+ 
