@@ -438,18 +438,20 @@ previous_game_average <- function(df,g) {
         mutate(maxgame = max(Game)) %>% 
         filter(Game <= i & Game > (i - ifelse(g == 50,max(Game),g))) %>%
         summarise_all(funs(round(mean(.),2))) %>% 
-        mutate(Game = i) %>% 
-        filter(Game == i) %>% 
+        mutate(Game = i + 1) %>% 
+        filter(Game == i + 1) %>% 
         select(-Opp_TeamID,-DayNum,-Win,-Loss,-Tie)
       names(t) <- paste('Avg_',names(t),sep = '')
       colnames(t)[names(t) == 'Avg_TeamID'] <- 'TeamID'
       colnames(t)[names(t) == 'Avg_Game'] <- 'Game'
       temp_avg <- rbind(temp_avg,t) %>% arrange(TeamID, Game) %>% 
         group_by(TeamID) %>% 
-        filter(Game >= ifelse(g == 50,Avg_maxgame,g) & Game <= Avg_maxgame) %>%
+        filter(Game >= ifelse(g == 50,Avg_maxgame + 1,g + 1) & Game <= Avg_maxgame + 1) %>%
         ungroup()
   }
-  return(temp_avg %>% select(-Avg_maxgame))
+  daynum_table <- df %>% select(TeamID,Game,DayNum)
+  temp_avg <- temp_avg %>% merge(daynum_table) %>% arrange(TeamID,Game)
+  return(temp_avg)
 }
 ```
  
@@ -460,3 +462,33 @@ s <- previous_game_average(events15_TOT,7)
 glimpse(s)
 ```
  
+```{r}
+mov_totals <- function(df) {
+  temp <- df %>% select(TeamID,Opp_TeamID,DayNum,Game,FinalScore,Opp_FinalScore) %>% 
+    mutate(spread = FinalScore - Opp_FinalScore,
+           total_pts = FinalScore + Opp_FinalScore)
+  return(temp)
+}
+```
+
+```{r}
+actual_lines15 <- mov_totals(events15_TOT)
+```
+
+```{r}
+s_opp <- s %>% select(-Game)
+names(s_opp) <- paste(names(s_opp),'_opp',sep = '')
+combined <- actual_lines15 %>% 
+  merge(s %>% select(-Game), by.x = c('TeamID','DayNum'), by.y = c('TeamID','DayNum')) %>% 
+  merge(s_opp, by.x = c('Opp_TeamID','DayNum'), by.y = c('TeamID_opp','DayNum_opp')) %>% 
+  mutate(win = ifelse(FinalScore >= Opp_FinalScore,1,0)) %>% 
+  select(-FinalScore, -Opp_FinalScore)
+combined
+```
+
+```{r}
+# Merge in CPI data
+model_data_15 <- combined %>% select(-DayNum,-Game, -spread, -total_pts, -Avg_maxgame, -Avg_maxgame_opp)
+mod1 <- glm(win ~ ., data = combined)
+```
+
